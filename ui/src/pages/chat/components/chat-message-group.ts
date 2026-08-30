@@ -23,11 +23,13 @@ import { extractToolCardsCached } from "../../../lib/chat/tool-cards.ts";
 import type { EmbedSandboxMode } from "../../../lib/chat/tool-display.ts";
 import { fnv1aUtf16 } from "../../../lib/fnv1a.ts";
 import { resolveIdentityHue } from "../../../lib/identity-avatar.ts";
-import { parseAgentSessionKey } from "../../../lib/sessions/session-key.ts";
-import { renderChatAvatar } from "../chat-avatar.ts";
+import {
+  renderChatAvatar,
+  renderSenderAgentAvatar,
+  type SenderAgentAvatarOptions,
+} from "../chat-avatar.ts";
 import type { TurnRecap } from "../chat-progress.ts";
 import {
-  isPendingSendMessage,
   persistedMessageEntryId,
   readPendingSendFailure,
   type AssistantMessageExpansionState,
@@ -36,6 +38,7 @@ import { assistantGroupIsForwardedBoundary } from "../chat-turn-boundary.ts";
 import type { LinkFaviconFetcher } from "../link-favicon-loader.ts";
 import { workspaceResultConflictFromTranscript } from "../workspace-conflict.ts";
 import { renderChatAuthorAvatar } from "./chat-author-avatar.ts";
+import { renderForwardedAttribution } from "./chat-forwarded-attribution.ts";
 import { renderGroupedMessage } from "./chat-message-bubble.ts";
 import { renderRewindButton } from "./chat-message-confirmation.ts";
 import {
@@ -62,6 +65,7 @@ import {
   shouldToggleSelectableDisclosure,
   syncToolDisclosureOverflow,
 } from "./chat-tool-cards.ts";
+import { shouldAnimateUserTurnEntry } from "./chat-user-turn-entry.ts";
 import { renderTurnRecapRow } from "./chat-working-indicator.ts";
 
 type ActiveContinuation = {
@@ -71,62 +75,65 @@ type ActiveContinuation = {
 
 type ReplyPreview = MessageReplyTarget & { sourceMessageId: string };
 
-type RenderMessageGroupOptions = ChatSendStatusActions & {
-  latestBrowserTabs?: ReadonlyMap<string, BrowserTabSelection>;
-  onOpenSidebar?: (content: SidebarContent) => void;
-  onOpenWorkspaceFile?: (target: { path: string; line?: number | null }) => void;
-  sessionKey?: string;
-  boardProvider?: BoardProvider;
-  agentId?: string;
-  showReasoning: boolean;
-  showToolCalls?: boolean;
-  runActive?: boolean;
-  autoExpandToolCalls?: boolean;
-  isToolMessageExpanded?: (messageId: string) => boolean | undefined;
-  onToggleToolMessageExpanded?: (messageId: string, expanded?: boolean) => void;
-  isUserMessageExpanded?: (messageId: string) => boolean;
-  onToggleUserMessageExpanded?: (messageId: string) => void;
-  loadFullAssistantMessage?: SidebarFullMessageLoader;
-  getAssistantMessageExpansion?: (messageId: string) => AssistantMessageExpansionState | undefined;
-  onToggleAssistantMessageExpanded?: (messageId: string) => void;
-  isToolExpanded?: (toolCardId: string) => boolean;
-  onToggleToolExpanded?: (toolCardId: string, expanded?: boolean) => void;
-  onRequestUpdate?: () => void;
-  onRequestOpenImage?: () => number;
-  onOpenImage?: (item: ImageLightboxItem, requestVersion?: number) => void;
-  onAssistantAttachmentLoaded?: () => void;
-  assistantName?: string;
-  assistantAvatar?: string | null;
-  userId?: string | null;
-  userName?: string | null;
-  /** Routing for peer sender names; absent leaves them plain text. */
-  personActivity?: PersonActivityRouting;
-  userAvatar?: string | null;
-  showAvatarGutter?: boolean;
-  showAssistantAvatar?: boolean;
-  resourceBasePath?: string;
-  localMediaPreviewRoots?: readonly string[];
-  connectionEpoch?: number;
-  assistantAttachmentAuthToken?: string | null;
-  resolveArtifactDownload?: ArtifactDownloadResolver;
-  canvasPluginSurfaceUrl?: string | null;
-  embedSandboxMode?: EmbedSandboxMode;
-  allowExternalEmbedUrls?: boolean;
-  fetchLinkFavicon?: LinkFaviconFetcher;
-  contextWindow?: number | null;
-  onReply?: (target: MessageReplyTarget) => void;
-  resolveReplyPreview?: (replyToId: string) => ReplyPreview | undefined;
-  onResolveReply?: (replyToId: string) => void;
-  onOpenReply?: (replyToId: string) => void;
-  replyNavigationId?: string | null;
-  onRewind?: () => void;
-  rewindDisabled?: boolean;
-  activeContinuation?: ActiveContinuation;
-  turnRecap?: TurnRecap;
-  frameContent?: unknown;
-  frameActionOwner?: MessageGroup["messages"][number] | null;
-  latestAssistant?: boolean;
-};
+type RenderMessageGroupOptions = ChatSendStatusActions &
+  SenderAgentAvatarOptions & {
+    latestBrowserTabs?: ReadonlyMap<string, BrowserTabSelection>;
+    onOpenSidebar?: (content: SidebarContent) => void;
+    onOpenWorkspaceFile?: (target: { path: string; line?: number | null }) => void;
+    sessionKey?: string;
+    boardProvider?: BoardProvider;
+    /** Configured main-session key; an agent's main source labels as the agent. */
+    mainKey?: string;
+    showReasoning: boolean;
+    showToolCalls?: boolean;
+    runActive?: boolean;
+    autoExpandToolCalls?: boolean;
+    isToolMessageExpanded?: (messageId: string) => boolean | undefined;
+    onToggleToolMessageExpanded?: (messageId: string, expanded?: boolean) => void;
+    isUserMessageExpanded?: (messageId: string) => boolean;
+    onToggleUserMessageExpanded?: (messageId: string) => void;
+    loadFullAssistantMessage?: SidebarFullMessageLoader;
+    getAssistantMessageExpansion?: (
+      messageId: string,
+    ) => AssistantMessageExpansionState | undefined;
+    onToggleAssistantMessageExpanded?: (messageId: string) => void;
+    isToolExpanded?: (toolCardId: string) => boolean;
+    onToggleToolExpanded?: (toolCardId: string, expanded?: boolean) => void;
+    onRequestUpdate?: () => void;
+    onRequestOpenImage?: () => number;
+    onOpenImage?: (item: ImageLightboxItem, requestVersion?: number) => void;
+    onAssistantAttachmentLoaded?: () => void;
+    assistantName?: string;
+    assistantAvatar?: string | null;
+    userId?: string | null;
+    userName?: string | null;
+    /** Routing for peer sender names; absent leaves them plain text. */
+    personActivity?: PersonActivityRouting;
+    userAvatar?: string | null;
+    showAvatarGutter?: boolean;
+    showAssistantAvatar?: boolean;
+    resourceBasePath?: string;
+    localMediaPreviewRoots?: readonly string[];
+    connectionEpoch?: number;
+    resolveArtifactDownload?: ArtifactDownloadResolver;
+    canvasPluginSurfaceUrl?: string | null;
+    embedSandboxMode?: EmbedSandboxMode;
+    allowExternalEmbedUrls?: boolean;
+    fetchLinkFavicon?: LinkFaviconFetcher;
+    contextWindow?: number | null;
+    onReply?: (target: MessageReplyTarget) => void;
+    resolveReplyPreview?: (replyToId: string) => ReplyPreview | undefined;
+    onResolveReply?: (replyToId: string) => void;
+    onOpenReply?: (replyToId: string) => void;
+    replyNavigationId?: string | null;
+    onRewind?: () => void;
+    rewindDisabled?: boolean;
+    activeContinuation?: ActiveContinuation;
+    turnRecap?: TurnRecap;
+    frameContent?: unknown;
+    frameActionOwner?: MessageGroup["messages"][number] | null;
+    latestAssistant?: boolean;
+  };
 
 type GroupedMessageRenderOptions = Parameters<typeof renderGroupedMessage>[2];
 
@@ -204,52 +211,11 @@ function buildGroupedMessageRenderOptions(
   };
 }
 
-/** One-shot entry animation state for submitted user turns, keyed by message
- * key (send identity). An entry records first sight for the send's lifetime —
- * value is the animation start, or 0 for seen-without-animating — so
- * re-renders during the animation keep the class while later renders or
- * virtualizer remounts of the same (possibly still pending) row never replay
- * it. Insertion-ordered cap bounds the map instead of time-based pruning,
- * which would forget long-lived pending rows; keys are per-send UUIDs, so the
- * map is never reset across panes or sessions. */
-const userTurnEntrySeenByMessageKey = new Map<string, number>();
-const USER_TURN_ENTRY_ANIMATION_WINDOW_MS = 400;
-/** Only just-submitted bubbles animate; restored outbox rows render still.
- * Accepted tradeoff: a full page reload within this window re-animates the
- * just-submitted bubble once, which matches the fresh paint around it. */
-const USER_TURN_ENTRY_FRESH_SUBMIT_MS = 2_000;
-const USER_TURN_ENTRY_SEEN_CAP = 256;
-
 function isPeerSenderGroup(group: MessageGroup, userId: string | null | undefined): boolean {
   const identity = group.sender?.identity;
   return Boolean(
     group.sender && !(userId && identity?.type === "profile" && identity.id === userId),
   );
-}
-
-function shouldAnimateUserTurnEntry(messageKey: string, message: unknown): boolean {
-  const now = Date.now();
-  const seen = userTurnEntrySeenByMessageKey.get(messageKey);
-  if (seen !== undefined) {
-    return seen > 0 && now - seen < USER_TURN_ENTRY_ANIMATION_WINDOW_MS;
-  }
-  // Only a locally pending submit starts the animation; loaded history and
-  // remote echoes render without one.
-  if (!isPendingSendMessage(message)) {
-    return false;
-  }
-  const submittedAt = (message as { timestamp?: unknown }).timestamp;
-  const freshSubmit =
-    typeof submittedAt === "number" && now - submittedAt < USER_TURN_ENTRY_FRESH_SUBMIT_MS;
-  while (userTurnEntrySeenByMessageKey.size >= USER_TURN_ENTRY_SEEN_CAP) {
-    const oldest = userTurnEntrySeenByMessageKey.keys().next().value;
-    if (oldest === undefined) {
-      break;
-    }
-    userTurnEntrySeenByMessageKey.delete(oldest);
-  }
-  userTurnEntrySeenByMessageKey.set(messageKey, freshSubmit ? now : 0);
-  return freshSubmit;
 }
 
 export function renderActivityGroup(
@@ -445,8 +411,6 @@ export function renderMessageGroup(group: MessageGroup, opts: RenderMessageGroup
   // Only agent-prefixed keys are navigable: the titler, hovercard, and click
   // handlers all reject other shapes, so a legacy key must stay plain text
   // instead of becoming a focusable link that goes nowhere.
-  const linkableSourceKey =
-    sourceSessionKey && parseAgentSessionKey(sourceSessionKey) ? sourceSessionKey : undefined;
   const who = resolveMessageGroupSenderLabel(group, opts);
   const roleClass =
     normalizedRole === "user"
@@ -573,9 +537,10 @@ export function renderMessageGroup(group: MessageGroup, opts: RenderMessageGroup
       showAvatarGutter &&
       (isForwarded || normalizedRole !== "assistant" || opts.showAssistantAvatar !== false)
         ? isForwarded
-          ? html`<div class="chat-avatar chat-avatar--forwarded" aria-hidden="true">
+          ? (renderSenderAgentAvatar(group.senderSession?.agentId, opts) ??
+            html`<div class="chat-avatar chat-avatar--forwarded" aria-hidden="true">
               ${icons.forward}
-            </div>`
+            </div>`)
           : renderChatAvatar(
               group.role,
               {
@@ -592,38 +557,7 @@ export function renderMessageGroup(group: MessageGroup, opts: RenderMessageGroup
             )
         : nothing}
       <div class="chat-group-messages">
-        ${isForwarded
-          ? html`
-              <div class="chat-reply-attribution">
-                <span class="chat-reply-attribution__icon" aria-hidden="true"
-                  >${icons.forward}</span
-                >
-                ${linkableSourceKey
-                  ? // The titler owns child text (.textContent keeps Lit's part
-                    // out of it). A rendered group's source never changes:
-                    // messages are immutable and grouping splits on
-                    // senderSession, so no keyed remount is needed here.
-                    html`<span>${t("chat.messages.forwardedFrom")}</span>
-                      <a
-                        class="markdown-session-link"
-                        role="link"
-                        tabindex="0"
-                        data-session-key=${linkableSourceKey}
-                        .textContent=${linkableSourceKey}
-                      ></a>`
-                  : sourceSessionKey
-                    ? html`<span>${t("chat.messages.forwardedFrom")}</span>
-                        <span>${sourceSessionKey}</span>`
-                    : html`<span
-                        >${group.senderSession?.agentId
-                          ? t("chat.messages.forwardedFromAgent", {
-                              agentId: group.senderSession.agentId,
-                            })
-                          : t("chat.messages.forwardedMessage")}</span
-                      >`}
-              </div>
-            `
-          : nothing}
+        ${isForwarded ? renderForwardedAttribution(group, opts) : nothing}
         ${replyToLabel
           ? html`
               <div class="chat-reply-attribution" title=${replyToTitle} aria-label=${replyToTitle}>
