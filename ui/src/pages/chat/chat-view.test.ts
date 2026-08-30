@@ -1048,6 +1048,8 @@ describe("chat run error", () => {
     "exposes the complete %s error as selectable text and a copy action",
     (source) => {
       const diagnostic =
+        "⚠️ 🛠️ Error: gateway disconnected\n<img src=x onerror=alert(1)>\nFinal diagnostic line";
+      const renderedDiagnostic =
         "Error: gateway disconnected\n<img src=x onerror=alert(1)>\nFinal diagnostic line";
       const container = renderChatView(
         source === "run" ? { runError: { summary: diagnostic } } : { error: diagnostic },
@@ -1057,7 +1059,10 @@ describe("chat run error", () => {
       expect(alert.getAttribute("role")).toBe("alert");
       const details = requireElement(alert, "details", "error disclosure");
       expect(details.hasAttribute("open")).toBe(false);
-      expect(requireElement(details, "pre", "full diagnostic").textContent).toBe(diagnostic);
+      expect(requireElement(details, "pre", "full diagnostic").textContent).toBe(
+        renderedDiagnostic,
+      );
+      expect(alert.textContent).not.toMatch(/[⚠🛠]/u);
       expect(alert.querySelector("img")).toBeNull();
       expect(alert.querySelector<HTMLButtonElement>('[aria-label="Copy error"]')).not.toBeNull();
       expect(alert.querySelector<HTMLButtonElement>('[aria-label="Dismiss error"]') !== null).toBe(

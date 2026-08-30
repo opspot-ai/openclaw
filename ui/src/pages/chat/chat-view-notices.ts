@@ -2,6 +2,7 @@ import { html, nothing, type TemplateResult } from "lit";
 import type { SessionPlacementDiskSpace } from "../../../../packages/gateway-protocol/src/schema/session-placement.ts";
 import type { ApplicationPlacementStartupStatus } from "../../app/session-placement-startup.ts";
 import { renderCopyButton } from "../../components/copy-button.ts";
+import { formatWebUiErrorText } from "../../components/error-presentation.ts";
 import { icons } from "../../components/icons.ts";
 import { t } from "../../i18n/index.ts";
 import { formatBytes } from "../../lib/agents/display.ts";
@@ -66,6 +67,7 @@ function renderDiskSpaceNotice(diskSpace: SessionPlacementDiskSpace | undefined)
 }
 
 function renderErrorNotice(error: string, action: TemplateResult | typeof nothing = nothing) {
+  const text = formatWebUiErrorText(error);
   return html`
     <div
       class="chat-composer-neighbor-card chat-composer-neighbor-card--danger chat-error"
@@ -76,13 +78,13 @@ function renderErrorNotice(error: string, action: TemplateResult | typeof nothin
       >
       <details class="chat-error__content">
         <summary class="chat-error__summary">
-          <strong>${error}</strong>
+          <strong>${text}</strong>
           <span>${t("chat.errorDetails")}</span>
           <span class="chat-error__chevron" aria-hidden="true">${icons.chevronDown}</span>
         </summary>
         <pre class="chat-error__diagnostic" tabindex="0" aria-label=${t("chat.errorDetails")}>
-${error}</pre>
-        ${renderCopyButton(error, t("chat.copyError"))}
+${text}</pre>
+        ${renderCopyButton(text, t("chat.copyError"))}
       </details>
       ${action}
     </div>
