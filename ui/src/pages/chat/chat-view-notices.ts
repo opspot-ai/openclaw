@@ -67,7 +67,7 @@ function renderDiskSpaceNotice(diskSpace: SessionPlacementDiskSpace | undefined)
 }
 
 function renderErrorNotice(error: string, action: TemplateResult | typeof nothing = nothing) {
-  const text = formatWebUiErrorText(error);
+  const displayText = formatWebUiErrorText(error);
   return html`
     <div
       class="chat-composer-neighbor-card chat-composer-neighbor-card--danger chat-error"
@@ -78,13 +78,13 @@ function renderErrorNotice(error: string, action: TemplateResult | typeof nothin
       >
       <details class="chat-error__content">
         <summary class="chat-error__summary">
-          <strong>${text}</strong>
+          <strong>${displayText}</strong>
           <span>${t("chat.errorDetails")}</span>
           <span class="chat-error__chevron" aria-hidden="true">${icons.chevronDown}</span>
         </summary>
         <pre class="chat-error__diagnostic" tabindex="0" aria-label=${t("chat.errorDetails")}>
-${text}</pre>
-        ${renderCopyButton(text, t("chat.copyError"))}
+${displayText}</pre>
+        ${renderCopyButton(error, t("chat.copyError"))}
       </details>
       ${action}
     </div>

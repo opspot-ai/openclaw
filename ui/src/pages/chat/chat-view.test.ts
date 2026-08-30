@@ -1046,11 +1046,13 @@ describe("chat run error", () => {
 
   it.each(["run", "request"])(
     "exposes the complete %s error as selectable text and a copy action",
-    (source) => {
+    async (source) => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      vi.stubGlobal("navigator", { clipboard: { writeText } });
       const diagnostic =
-        "⚠️ 🛠️ Error: gateway disconnected\n<img src=x onerror=alert(1)>\nFinal diagnostic line";
+        "⚠️ 🛠️ Error:  gateway disconnected\n  indented\tdetail\n<img src=x onerror=alert(1)>\nFinal diagnostic line  ";
       const renderedDiagnostic =
-        "Error: gateway disconnected\n<img src=x onerror=alert(1)>\nFinal diagnostic line";
+        "  Error:  gateway disconnected\n  indented\tdetail\n<img src=x onerror=alert(1)>\nFinal diagnostic line  ";
       const container = renderChatView(
         source === "run" ? { runError: { summary: diagnostic } } : { error: diagnostic },
       );
@@ -1064,7 +1066,8 @@ describe("chat run error", () => {
       );
       expect(alert.textContent).not.toMatch(/[⚠🛠]/u);
       expect(alert.querySelector("img")).toBeNull();
-      expect(alert.querySelector<HTMLButtonElement>('[aria-label="Copy error"]')).not.toBeNull();
+      alert.querySelector<HTMLButtonElement>('[aria-label="Copy error"]')?.click();
+      await waitForFast(() => expect(writeText).toHaveBeenCalledWith(diagnostic));
       expect(alert.querySelector<HTMLButtonElement>('[aria-label="Dismiss error"]') !== null).toBe(
         source === "request",
       );
@@ -1091,15 +1094,16 @@ describe("chat run error", () => {
         sessionKey: "agent:main:startup",
         phase: "failed",
         startedAt: 1,
-        error: "Provisioning failed\nFinal diagnostic line",
+        error: "⚠️ Provisioning failed\n  Final diagnostic line  ",
         retryable,
       },
       onRetrySessionPlacementStartup,
     });
     const alert = requireElement(container, ".chat-error", "startup error");
-    expect(requireElement(alert, "pre", "startup diagnostic").textContent).toContain(
-      "Provisioning failed\nFinal diagnostic line",
+    expect(requireElement(alert, "pre", "startup diagnostic").textContent).toBe(
+      "The session was created, but runner startup failed:  Provisioning failed\n  Final diagnostic line  ",
     );
+    expect(alert.textContent).not.toContain("⚠");
     alert.querySelector<HTMLElement>("summary")?.click();
     expect(onRetrySessionPlacementStartup).not.toHaveBeenCalled();
     const retry = Array.from(alert.querySelectorAll("button")).find(
