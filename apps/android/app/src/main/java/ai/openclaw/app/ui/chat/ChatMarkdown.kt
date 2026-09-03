@@ -111,6 +111,7 @@ fun ChatMarkdown(
   textColor: Color,
   isStreaming: Boolean = false,
   bodyStyle: TextStyle = ClawTheme.type.body,
+  progressBars: Boolean = false,
 ) {
   val blocks = remember(text, isStreaming) { segmentChatMarkdown(text, isStreaming) }
   // Parsed nodes survive theme changes; span caches must also key on these styles.
@@ -133,6 +134,8 @@ fun ChatMarkdown(
             inlineStyles = inlineStyles,
             listDepth = 0,
             isStreaming = isStreaming,
+            markdownSource = block.source,
+            progressBars = progressBars,
           )
         }
 
@@ -155,6 +158,8 @@ private fun RenderMarkdownBlocks(
   inlineStyles: InlineStyles,
   listDepth: Int,
   isStreaming: Boolean,
+  markdownSource: String,
+  progressBars: Boolean,
 ) {
   for (block in blocks) {
     when (block) {
@@ -165,6 +170,8 @@ private fun RenderMarkdownBlocks(
           inlineStyles = inlineStyles,
           listDepth = listDepth,
           isStreaming = isStreaming,
+          markdownSource = markdownSource,
+          progressBars = progressBars,
         )
       }
 
@@ -192,7 +199,16 @@ private fun RenderCommonMarkBlock(
   inlineStyles: InlineStyles,
   listDepth: Int,
   isStreaming: Boolean,
+  markdownSource: String,
+  progressBars: Boolean,
 ) {
+  if (progressBars) {
+    val progress = remember(current, markdownSource) { parseChatProgressElement(current, markdownSource) }
+    if (progress != null) {
+      ChatProgressBar(progress)
+      return
+    }
+  }
   when (current) {
     is Paragraph -> {
       RenderParagraph(current, textColor = textColor, inlineStyles = inlineStyles)
@@ -252,6 +268,8 @@ private fun RenderCommonMarkBlock(
             inlineStyles = inlineStyles,
             listDepth = listDepth,
             isStreaming = isStreaming,
+            markdownSource = markdownSource,
+            progressBars = progressBars,
           )
         }
       }
@@ -264,6 +282,8 @@ private fun RenderCommonMarkBlock(
         inlineStyles = inlineStyles,
         listDepth = listDepth,
         isStreaming = isStreaming,
+        markdownSource = markdownSource,
+        progressBars = progressBars,
       )
     }
 
@@ -274,6 +294,8 @@ private fun RenderCommonMarkBlock(
         inlineStyles = inlineStyles,
         listDepth = listDepth,
         isStreaming = isStreaming,
+        markdownSource = markdownSource,
+        progressBars = progressBars,
       )
     }
 
@@ -367,6 +389,8 @@ private fun RenderMarkdownDisclosure(
           inlineStyles = inlineStyles,
           listDepth = listDepth,
           isStreaming = isStreaming,
+          markdownSource = "",
+          progressBars = false,
         )
       }
     }
@@ -405,6 +429,8 @@ private fun RenderBulletList(
   inlineStyles: InlineStyles,
   listDepth: Int,
   isStreaming: Boolean,
+  markdownSource: String,
+  progressBars: Boolean,
 ) {
   Column(
     modifier = Modifier.padding(start = (LIST_INDENT_DP * listDepth).dp),
@@ -420,6 +446,8 @@ private fun RenderBulletList(
           inlineStyles = inlineStyles,
           listDepth = listDepth,
           isStreaming = isStreaming,
+          markdownSource = markdownSource,
+          progressBars = progressBars,
         )
       }
       item = item.next
@@ -434,6 +462,8 @@ private fun RenderOrderedList(
   inlineStyles: InlineStyles,
   listDepth: Int,
   isStreaming: Boolean,
+  markdownSource: String,
+  progressBars: Boolean,
 ) {
   Column(
     modifier = Modifier.padding(start = (LIST_INDENT_DP * listDepth).dp),
@@ -450,6 +480,8 @@ private fun RenderOrderedList(
           inlineStyles = inlineStyles,
           listDepth = listDepth,
           isStreaming = isStreaming,
+          markdownSource = markdownSource,
+          progressBars = progressBars,
         )
         index += 1
       }
@@ -466,6 +498,8 @@ private fun RenderListItem(
   inlineStyles: InlineStyles,
   listDepth: Int,
   isStreaming: Boolean,
+  markdownSource: String,
+  progressBars: Boolean,
 ) {
   var contentStart = item.firstChild
   var marker = markerText
@@ -497,6 +531,8 @@ private fun RenderListItem(
         inlineStyles = inlineStyles,
         listDepth = listDepth + 1,
         isStreaming = isStreaming,
+        markdownSource = markdownSource,
+        progressBars = progressBars,
       )
     }
   }
