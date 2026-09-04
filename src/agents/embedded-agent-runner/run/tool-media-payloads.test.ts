@@ -48,20 +48,17 @@ describe("mergeAttemptToolMediaPayloads", () => {
     ]);
   });
 
-  it("keeps earlier generated media separate from a later tool-error warning", () => {
+  it.each([
+    { kind: "tool-error warning", flags: { isError: true } },
+    { kind: "reasoning", flags: { isReasoning: true } },
+  ])("does not let $kind select a subset of generated media", ({ flags }) => {
+    const payload = { text: "Inspecting ![first](/tmp/first.png)", ...flags };
+    const mediaUrls = ["/tmp/first.png", "/tmp/second.png"];
     expect(
-      mergeAttemptToolMediaPayloads({
-        payloads: [{ text: "Bash failed", isError: true }],
-        toolMediaUrls: ["/tmp/generated.png"],
-      }),
+      mergeAttemptToolMediaPayloads({ payloads: [payload], toolMediaUrls: mediaUrls }),
     ).toEqual([
-      { text: "Bash failed", isError: true },
-      {
-        mediaUrls: ["/tmp/generated.png"],
-        mediaUrl: "/tmp/generated.png",
-        audioAsVoice: undefined,
-        trustedLocalMedia: undefined,
-      },
+      payload,
+      { mediaUrls, mediaUrl: mediaUrls[0], audioAsVoice: undefined, trustedLocalMedia: undefined },
     ]);
   });
 
