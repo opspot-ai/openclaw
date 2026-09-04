@@ -154,7 +154,7 @@ export async function cleanupSessionLifecycleArtifactsCore(
             materializedPlans,
           });
           const reclaimed = await runSqliteSessionReclamation({
-            beforeInProcessMutation: assertCurrent,
+            assertCommitAllowed: assertCurrent,
             forceInProcess: hasPreparedNativeSessionDeletion(),
             plan,
           });
@@ -469,7 +469,7 @@ async function deleteSqliteSessionEntryLifecycleLocked(
               sessionId,
             });
             const reclaimed = await runSqliteSessionReclamation({
-              beforeInProcessMutation: () => {
+              assertCommitAllowed: () => {
                 params.commitGuard?.();
                 assertCurrent();
               },
@@ -519,7 +519,7 @@ async function deleteSqliteSessionEntryLifecycleLocked(
             preparedTargetSnapshot: prepared.targetSnapshot,
           });
           const reclaimed = await runSqliteSessionReclamation({
-            beforeInProcessMutation: () => {
+            assertCommitAllowed: () => {
               params.commitGuard?.();
               assertCurrent();
             },
