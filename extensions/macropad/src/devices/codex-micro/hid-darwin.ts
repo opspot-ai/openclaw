@@ -499,7 +499,7 @@ export class HidDevice {
       ) => {
         this.inputReportCount++;
         try {
-          const length = Number(reportLength);
+          const length = reportLength;
           const bytes =
             length > 0 && report
               ? Uint8Array.from(bound.api.decode(report, "uint8_t", length) as number[])

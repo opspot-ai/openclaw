@@ -142,7 +142,8 @@ export class Correlator {
 
   /** Reject everything in flight, e.g. on close or reconnect. */
   rejectAll(reason: string): void {
-    for (const [id, pending] of [...this.#pending]) {
+    // Snapshot: settling a caller can enqueue new requests.
+    for (const [id, pending] of Array.from(this.#pending)) {
       this.#pending.delete(id);
       pending.cancelTimer();
       pending.reject(new Error(reason));

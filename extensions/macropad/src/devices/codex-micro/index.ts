@@ -226,7 +226,7 @@ export function createCodexMicroTransport(params: {
   if (!isDarwinHidAvailable()) {
     return undefined;
   }
-  let present = false;
+  let present: boolean;
   try {
     present =
       findCodexMicro(

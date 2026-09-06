@@ -26,7 +26,7 @@ function fakeTimers() {
     },
     advance(ms: number) {
       now += ms;
-      for (const [handle, timer] of [...pendingTimers]) {
+      for (const [handle, timer] of Array.from(pendingTimers)) {
         if (timer.at <= now) {
           pendingTimers.delete(handle);
           timer.fn();

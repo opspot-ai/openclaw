@@ -77,7 +77,7 @@ describe("slots.list", () => {
     expect(list.slots).toHaveLength(MACROPAD_SLOT_COUNT);
     expect(list.slots.map((slot) => slot.index)).toEqual([0, 1, 2, 3, 4, 5]);
     expect(list.slots.every((slot) => slot.activity === "unbound")).toBe(true);
-    expect(list.slots.every((slot) => slot.pinned === false)).toBe(true);
+    expect(list.slots.every((slot) => !slot.pinned)).toBe(true);
   });
 
   it("carries the rendered frame for each key so the UI mirrors the device", async () => {
