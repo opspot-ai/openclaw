@@ -114,5 +114,11 @@
       "order": 100,
       "advanced": true
     }
+  },
+  "controlUi": {
+    "entry": "dist/control-ui/700ad0142ab5358aab5e0402f7f5ad97b60d91c0d26711329eaf8b9e13487e38/index.js",
+    "styles": [
+      "dist/control-ui/700ad0142ab5358aab5e0402f7f5ad97b60d91c0d26711329eaf8b9e13487e38/index.css"
+    ]
   }
 }
