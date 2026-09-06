@@ -1,0 +1,118 @@
+{
+  "id": "macropad",
+  "name": "Macropad",
+  "description": "Bind OpenClaw sessions to the keys of a USB macropad, with live status lighting. Includes a driver for the Work Louder Codex Micro.",
+  "enabledByDefault": true,
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "deviceSerial": {
+        "type": "string"
+      },
+      "autoBind": {
+        "type": "boolean",
+        "default": true
+      },
+      "brightness": {
+        "type": "number",
+        "default": 0.8,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "idleBrightness": {
+        "type": "number",
+        "default": 0.15,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "resyncIntervalSeconds": {
+        "type": "number",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 120
+      },
+      "colorThinking": {
+        "type": "string",
+        "default": "#4C8DFF",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+      },
+      "colorAwaitingApproval": {
+        "type": "string",
+        "default": "#FFB020",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+      },
+      "colorError": {
+        "type": "string",
+        "default": "#FF4D4D",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+      },
+      "useSessionColors": {
+        "type": "boolean",
+        "default": true
+      }
+    }
+  },
+  "uiHints": {
+    "enabled": {
+      "label": "Enabled",
+      "help": "Master switch. When off, the plugin releases the device and stops all lighting.",
+      "order": 10
+    },
+    "deviceSerial": {
+      "label": "Device Serial",
+      "placeholder": "Auto-detect",
+      "help": "Pin to one macropad by serial number. Leave empty to use the first supported device found.",
+      "order": 20,
+      "advanced": true
+    },
+    "autoBind": {
+      "label": "Auto-bind Sessions",
+      "help": "Automatically assign active sessions to free keys, evicting the least recently used session when every key is taken. Pinned keys are never evicted.",
+      "order": 30
+    },
+    "useSessionColors": {
+      "label": "Match Sidebar Colours",
+      "help": "Use each session's own sidebar colour as its key colour, so the device and the Control UI agree on what colour a session is. When off, all keys use the status colours below.",
+      "order": 40
+    },
+    "brightness": {
+      "label": "Brightness",
+      "help": "Key brightness for active sessions, from 0 to 1.",
+      "order": 50
+    },
+    "idleBrightness": {
+      "label": "Idle Brightness",
+      "help": "Dimmed brightness for bound sessions that are not currently doing anything.",
+      "order": 60
+    },
+    "colorThinking": {
+      "label": "Working Colour",
+      "help": "Key colour while a session is running. Used only when Match Sidebar Colours is off.",
+      "order": 70
+    },
+    "colorAwaitingApproval": {
+      "label": "Awaiting Approval Colour",
+      "help": "Key colour while a session is blocked on an approval.",
+      "order": 80
+    },
+    "colorError": {
+      "label": "Error Colour",
+      "help": "Key colour after a session fails.",
+      "order": 90
+    },
+    "resyncIntervalSeconds": {
+      "label": "Resync Interval (s)",
+      "help": "Device lighting is volatile and drifts if left alone, so the full key frame is repainted on this interval. Raise it to reduce USB traffic.",
+      "order": 100,
+      "advanced": true
+    }
+  }
+}
