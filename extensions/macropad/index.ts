@@ -19,6 +19,7 @@ import { macropadContract } from "./contract.js";
 import { createKeyedBindingStore, type OpenKeyedStoreLike } from "./src/binding-store.js";
 import { resolveMacropadConfig } from "./src/config.js";
 import type { MacropadDeviceStatus, MacropadSlotList } from "./src/contract-types.js";
+import { createCodexMicroTransport } from "./src/devices/codex-micro/index.js";
 import {
   MACROPAD_AGENT_EVENT_STREAMS,
   MacropadService,
@@ -29,13 +30,17 @@ import type { DeviceTransport } from "./src/transport.js";
 /**
  * Opens the platform transport.
  *
- * PR 1 ships the seam, not the driver: a parallel effort is proving the
- * koffi -> IOKit path, and it lands here without any other file changing.
- * Until then every install takes the inert branch, which is the correct
- * behaviour for a bundled plugin on a machine with no macropad anyway.
+ * Exactly one driver exists today: the Codex Micro over koffi -> IOKit, which
+ * is macOS-only by construction. `createCodexMicroTransport` returns
+ * `undefined` off macOS, when koffi cannot reach IOKit, and when no matching
+ * device is attached - so every other install takes the inert branch, which is
+ * the correct behaviour for a bundled plugin on a machine with no macropad.
+ *
+ * A second device would slot in as another `devices/<name>/` module returning
+ * the same `DeviceTransport`, selected here. Nothing above this line changes.
  */
-function createDeviceTransport(_params: { deviceSerial?: string }): DeviceTransport | undefined {
-  return undefined;
+function createDeviceTransport(params: { deviceSerial?: string }): DeviceTransport | undefined {
+  return createCodexMicroTransport(params);
 }
 
 const DISCONNECTED: MacropadDeviceStatus = {

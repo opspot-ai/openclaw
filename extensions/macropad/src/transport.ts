@@ -31,6 +31,16 @@ export type DeviceIdentity = {
    * a connection failure.
    */
   inputPermissionRequired?: boolean;
+  /**
+   * Battery percentage, when the round-trip reports one.
+   *
+   * Lives on the identity rather than in a separate poll because this device's
+   * proof-of-life call already carries it: `device.status` returns firmware AND
+   * battery together, so asking twice would be a second USB exchange for data
+   * we already hold.
+   */
+  batteryPercent?: number;
+  charging?: boolean;
 };
 
 /** A physical key press or release. `key` is the firmware's own id, e.g. `AG00`. */

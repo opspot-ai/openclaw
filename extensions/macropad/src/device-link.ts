@@ -197,6 +197,10 @@ export class MacropadDeviceLink {
       ...(identity.serial === undefined ? {} : { serial: identity.serial }),
       ...(identity.firmware === undefined ? {} : { firmware: identity.firmware }),
       ...(identity.product === undefined ? {} : { product: identity.product }),
+      ...(identity.batteryPercent === undefined
+        ? {}
+        : { batteryPercent: identity.batteryPercent }),
+      ...(identity.charging === undefined ? {} : { charging: identity.charging }),
     });
     if (!this.everConnected) {
       this.everConnected = true;
