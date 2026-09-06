@@ -22,11 +22,7 @@
  */
 import { MACROPAD_EFFECTS, MACROPAD_SLOT_COUNT } from "../../../contract.js";
 import type { MacropadFullFrame } from "../../frame-compositor.js";
-import type {
-  DeviceIdentity,
-  DeviceInputEvent,
-  DeviceTransport,
-} from "../../transport.js";
+import type { DeviceIdentity, DeviceInputEvent, DeviceTransport } from "../../transport.js";
 import { isDarwinHidAvailable } from "./hid-darwin.js";
 import { fullFrameToParams, frameToParams, uniformFrame } from "./lighting.js";
 import {
@@ -64,9 +60,10 @@ class CodexMicroDeviceTransport implements DeviceTransport {
   readonly #listeners = new Set<(event: DeviceInputEvent) => void>();
   #open = false;
 
-  constructor(options: { serialNumber?: string }) {
+  constructor(options: { serialNumber?: string; debug?: (message: string) => void }) {
     this.#rpc = new CodexMicroTransport({
       ...(options.serialNumber === undefined ? {} : { serialNumber: options.serialNumber }),
+      ...(options.debug === undefined ? {} : { debug: options.debug }),
       events: {
         key: (event: KeyEvent) => {
           if (typeof event?.k !== "number" || typeof event?.act !== "number") {
@@ -214,6 +211,14 @@ function isVitestRuntimeEnv(env: NodeJS.ProcessEnv = process.env): boolean {
  */
 export function createCodexMicroTransport(params: {
   deviceSerial?: string;
+  /**
+   * Protocol trace sink. Off by default.
+   *
+   * Wider than the `DeviceTransportFactory` params on purpose: the seam never
+   * passes it, but it is what lets a diagnostic run quote the firmware's own
+   * parsed replies without reaching around the driver into the raw RPC layer.
+   */
+  debug?: (message: string) => void;
 }): DeviceTransport | undefined {
   if (isVitestRuntimeEnv()) {
     return undefined;
@@ -234,9 +239,10 @@ export function createCodexMicroTransport(params: {
   if (!present) {
     return undefined;
   }
-  return new CodexMicroDeviceTransport(
-    params.deviceSerial === undefined ? {} : { serialNumber: params.deviceSerial },
-  );
+  return new CodexMicroDeviceTransport({
+    ...(params.deviceSerial === undefined ? {} : { serialNumber: params.deviceSerial }),
+    ...(params.debug === undefined ? {} : { debug: params.debug }),
+  });
 }
 
 export { CODEX_MICRO_PRODUCT_ID, CODEX_MICRO_VENDOR_ID };

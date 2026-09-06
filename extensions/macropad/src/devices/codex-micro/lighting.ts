@@ -126,7 +126,9 @@ export function validateFrame(frame: KeyFrame): void {
       throw new LightingError(`key ${index}: color must be a packed RGB int 0x000000..0xFFFFFF`);
     }
     if (!(key.brightness >= 0 && key.brightness <= 1)) {
-      throw new LightingError(`key ${index}: brightness must be within 0..1, got ${key.brightness}`);
+      throw new LightingError(
+        `key ${index}: brightness must be within 0..1, got ${key.brightness}`,
+      );
     }
     if (key.speed !== undefined && !(key.speed >= 0 && key.speed <= 1)) {
       throw new LightingError(`key ${index}: speed must be within 0..1, got ${key.speed}`);

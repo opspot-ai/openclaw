@@ -160,7 +160,9 @@ let cachedBindings: Bindings | undefined;
 function bindings(): Bindings {
   if (!cachedBindings) {
     if (process.platform !== "darwin") {
-      throw new Error(`macropad: the IOKit HID backend is macOS-only (platform=${process.platform})`);
+      throw new Error(
+        `macropad: the IOKit HID backend is macOS-only (platform=${process.platform})`,
+      );
     }
     cachedBindings = loadBindings();
   }
@@ -197,7 +199,11 @@ const cfStringCache = new Map<string, unknown>();
 function cfstr(value: string): unknown {
   let ref = cfStringCache.get(value);
   if (ref === undefined) {
-    ref = bindings().CFStringCreateWithCString(null as never, value as never, kCFStringEncodingUTF8 as never);
+    ref = bindings().CFStringCreateWithCString(
+      null as never,
+      value as never,
+      kCFStringEncodingUTF8 as never,
+    );
     cfStringCache.set(value, ref);
   }
   return ref;

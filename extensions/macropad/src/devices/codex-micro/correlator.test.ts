@@ -144,7 +144,9 @@ describe("Correlator id ring", () => {
     const correlator = new Correlator({ startId: 990 });
     for (let i = 0; i < MAX_RPC_ID * 2; i++) {
       const id = correlator.allocateId();
-      expect(Number.isInteger(id) && id >= 0 && id < MAX_RPC_ID, `id ${id} out of range`).toBe(true);
+      expect(Number.isInteger(id) && id >= 0 && id < MAX_RPC_ID, `id ${id} out of range`).toBe(
+        true,
+      );
     }
   });
 
@@ -169,7 +171,9 @@ describe("Correlator id ring", () => {
     }
 
     expect(seen.includes(held), "an in-flight id must never be handed out again").toBe(false);
-    expect(seen.includes(4) && seen.includes(6), "neighbouring ids must still be usable").toBe(true);
+    expect(seen.includes(4) && seen.includes(6), "neighbouring ids must still be usable").toBe(
+      true,
+    );
     expect(correlator.hasPending(held)).toBe(true);
   });
 

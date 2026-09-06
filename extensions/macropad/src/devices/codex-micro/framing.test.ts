@@ -309,12 +309,9 @@ describe("rpc id ring", () => {
     expect(nextRpcId(998), "998 is the last legal id; the next must wrap to 0").toBe(0);
 
     const allocator = new RpcIdAllocator(996);
-    expect([
-      allocator.take(),
-      allocator.take(),
-      allocator.take(),
-      allocator.take(),
-    ]).toEqual([996, 997, 998, 0]);
+    expect([allocator.take(), allocator.take(), allocator.take(), allocator.take()]).toEqual([
+      996, 997, 998, 0,
+    ]);
   });
 
   it("visits every legal id exactly once in a full lap and returns to its start", () => {
@@ -322,7 +319,9 @@ describe("rpc id ring", () => {
     const seen = new Set<number>();
     for (let i = 0; i < MAX_RPC_ID; i++) {
       const id = allocator.take();
-      expect(Number.isInteger(id) && id >= 0 && id < MAX_RPC_ID, `id ${id} out of range`).toBe(true);
+      expect(Number.isInteger(id) && id >= 0 && id < MAX_RPC_ID, `id ${id} out of range`).toBe(
+        true,
+      );
       seen.add(id);
     }
     expect(seen.size).toBe(MAX_RPC_ID);

@@ -132,9 +132,7 @@ export type DeviceStatusReply = {
 };
 
 export class CodexMicroTransport {
-  readonly #opts: Required<
-    Omit<CodexMicroTransportOptions, "serialNumber" | "events" | "debug">
-  > &
+  readonly #opts: Required<Omit<CodexMicroTransportOptions, "serialNumber" | "events" | "debug">> &
     Pick<CodexMicroTransportOptions, "serialNumber" | "events" | "debug">;
 
   #device: HidDevice | null = null;
@@ -247,8 +245,12 @@ export class CodexMicroTransport {
         }
       }
     }, this.#opts.pumpIntervalMs);
-    // A dark macropad must never hold the Gateway's event loop open at shutdown.
-    this.#pumpTimer.unref?.();
+    // DELIBERATELY NOT `unref`'d. This timer is the only thing dispatching
+    // IOKit sources, so an unref'd pump lets a process with no other handles
+    // exit between a request and its reply - the round-trip then never
+    // completes and the device looks dead. It is live I/O, and it holds the
+    // loop open for exactly as long as the device is open: `close()` always
+    // clears it, and `device-link.stop()` always calls `close()`.
   }
 
   #stopPump(): void {
@@ -289,6 +291,10 @@ export class CodexMicroTransport {
     }
 
     if (message.kind === "response") {
+      // Trace the PARSED reply, not the raw line. On this device a reply is the
+      // only evidence a write was not silently dropped, so it is the one thing
+      // worth quoting when someone is proving the driver works.
+      this.#log(`<- id ${message.id} ${JSON.stringify(message.error ?? message.result)}`);
       // A false return means a late reply after a timeout, or a reply belonging
       // to another process sharing this device. Dropping it is correct.
       if (!this.#correlator.settle(message.id, message.result, message.error)) {
@@ -312,7 +318,11 @@ export class CodexMicroTransport {
    * only reliable signal that a frame was malformed, because `SetReport`
    * returns success for frames the firmware then silently discards.
    */
-  async request(method: string, params?: unknown, opts: { timeoutMs?: number } = {}): Promise<unknown> {
+  async request(
+    method: string,
+    params?: unknown,
+    opts: { timeoutMs?: number } = {},
+  ): Promise<unknown> {
     if (!ALLOWED_METHODS.has(method)) {
       throw new ForbiddenMethodError(method);
     }
@@ -360,7 +370,11 @@ export class CodexMicroTransport {
 
   /** Round-trip proof of life. Returns the parsed reply, throws on timeout. */
   async version(timeoutMs?: number): Promise<unknown> {
-    return await this.request("sys.version", undefined, timeoutMs === undefined ? {} : { timeoutMs });
+    return await this.request(
+      "sys.version",
+      undefined,
+      timeoutMs === undefined ? {} : { timeoutMs },
+    );
   }
 
   /**
