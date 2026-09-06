@@ -37,12 +37,53 @@ it("registers every surface and tears all of them down", async () => {
   const navigation = registrations.get("navigation/macropad") as { icon: string; page: unknown };
   // Mode A: the router reads `id`, and a `path` here would be ignored anyway.
   expect(navigation.page).toEqual({ id: "macropad" });
-  expect(navigation.icon).toBe("layoutGrid");
+  // No device state has arrived yet, so the sidebar starts unplugged.
+  expect(navigation.icon).toBe("plug");
 
   dispose?.();
   expect(registrations.size).toBe(0);
   expect(listeners.size).toBe(0);
   expect([...events.values()].every((entries) => entries.size === 0)).toBe(true);
+});
+
+it("swaps the sidebar icon on state changes but not on battery readings", async () => {
+  const fixture = macropadTestHost();
+  const { host, connection, registrations } = fixture;
+  connection.connected = true;
+  // `watch` re-queries on an event rather than consuming its payload, so the
+  // device the backend reports is what moves the icon.
+  let device = createDeviceStatus({ batteryPercent: 100 });
+  host.request = vi.fn(async (_method: string, params?: Record<string, unknown>) =>
+    params?.actionId === "device.get"
+      ? { ok: true, result: device }
+      : { ok: true, result: { slots: [] } },
+  ) as typeof host.request;
+
+  const dispose = await macropadPlugin.activate(host);
+  const navIcon = () => (registrations.get("navigation/macropad") as { icon: string }).icon;
+  try {
+    await vi.waitFor(() => expect(navIcon()).toBe("layoutGrid"));
+
+    // A battery reading must not churn the registration.
+    const registration = registrations.get("navigation/macropad");
+    device = createDeviceStatus({ batteryPercent: 40 });
+    fixture.emit("plugin.macropad.device_changed", device);
+    await vi.waitFor(() => expect(vi.mocked(host.request).mock.calls.length).toBeGreaterThan(2));
+    expect(navIcon()).toBe("layoutGrid");
+    expect(registrations.get("navigation/macropad")).toBe(registration);
+
+    // A lapsed Input Monitoring grant is a real state change and does re-register.
+    device = createDeviceStatus({ inputPermissionRequired: true });
+    fixture.emit("plugin.macropad.device_changed", device);
+    await vi.waitFor(() => expect(navIcon()).toBe("shieldAlert"));
+
+    device = createDeviceStatus({ connected: false });
+    fixture.emit("plugin.macropad.device_changed", device);
+    await vi.waitFor(() => expect(navIcon()).toBe("plug"));
+  } finally {
+    dispose?.();
+  }
+  expect(registrations.size).toBe(0);
 });
 
 it("keeps the session action in step with live device state", async () => {

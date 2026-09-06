@@ -78,6 +78,58 @@ it("mirrors the device header and every physical key", async () => {
   }
 });
 
+it("shows battery in the header pill and its own status row", async () => {
+  const { container, teardown } = await mountPage(
+    stubBackend(createDeviceStatus({ batteryPercent: 100 })),
+  );
+  try {
+    // The pill always renders, so wait on connected content, not its presence.
+    await vi.waitFor(() => expect(container.textContent).toContain("Codex Micro"));
+    const pill = container.querySelector(".macropad-pill");
+    expect(pill?.textContent?.replace(/\s+/g, " ").trim()).toBe("Connected · 100%");
+    expect(pill?.className).toContain("macropad-pill--ok");
+    expect(pill?.querySelector(".macropad-battery")).not.toBeNull();
+    expect(container.textContent).toContain("Battery");
+  } finally {
+    teardown();
+  }
+});
+
+it("warns on a low battery but not while charging", async () => {
+  const low = await mountPage(stubBackend(createDeviceStatus({ batteryPercent: 8 })));
+  try {
+    await vi.waitFor(() =>
+      expect(low.container.querySelector(".macropad-pill--warn")).not.toBeNull(),
+    );
+
+    expect(low.container.textContent).toContain("Battery is low.");
+  } finally {
+    low.teardown();
+  }
+  const charging = await mountPage(
+    stubBackend(createDeviceStatus({ batteryPercent: 8, charging: true })),
+  );
+  try {
+    await vi.waitFor(() => expect(charging.container.textContent).toContain("Charging"));
+    expect(charging.container.querySelector(".macropad-pill--warn")).toBeNull();
+    expect(charging.container.textContent).toContain("8% · Charging");
+  } finally {
+    charging.teardown();
+  }
+});
+
+it("omits battery entirely when the device reports none", async () => {
+  const { container, teardown } = await mountPage(stubBackend(createDeviceStatus()));
+  try {
+    await vi.waitFor(() => expect(container.textContent).toContain("Codex Micro"));
+    expect(container.querySelector(".macropad-pill")?.textContent?.trim()).toBe("Connected");
+    expect(container.querySelector(".macropad-battery")).toBeNull();
+    expect(container.textContent).not.toContain("Battery");
+  } finally {
+    teardown();
+  }
+});
+
 it("warns when macOS is withholding key presses without calling the device down", async () => {
   const { container, teardown } = await mountPage(
     stubBackend(createDeviceStatus({ inputPermissionRequired: true })),

@@ -1,6 +1,8 @@
 import { html, nothing, type TemplateResult } from "lit";
+import { renderBatteryGlyph } from "../../components/battery-glyph.ts";
 import { icons } from "../../components/icons.ts";
 import { t } from "../../i18n/index.ts";
+import { presentBattery, presentDevicePill } from "../../lib/device-presentation.ts";
 import {
   sessionDisplayLabel,
   slotDisplayLabel,
@@ -48,6 +50,7 @@ function renderDeviceStatus(props: MacropadViewProps): TemplateResult {
   // Input Monitoring is a capability flag, never a connection failure: output
   // lighting works without it, so it gets its own row rather than a red banner.
   const inputBlocked = connected && device?.inputPermissionRequired === true;
+  const battery = presentBattery(device);
   return html`<div class="macropad-status">
     ${statusRow(
       t("macropad.device.connection"),
@@ -73,6 +76,18 @@ function renderDeviceStatus(props: MacropadViewProps): TemplateResult {
         : nothing
     }
     ${connected ? statusRow(t("macropad.device.keys"), String(device?.slotCount ?? 0)) : nothing}
+    ${
+      battery
+        ? statusRow(
+            t("macropad.device.battery"),
+            html`${renderBatteryGlyph(battery)}<span>${battery.label}</span>`,
+            {
+              tone: battery.tone,
+              help: battery.tone === "warn" ? t("macropad.device.batteryLow") : undefined,
+            },
+          )
+        : nothing
+    }
     ${
       connected
         ? statusRow(
@@ -163,11 +178,19 @@ function renderKey(props: MacropadViewProps, slot: SlotPresentation): TemplateRe
 
 export function renderMacropad(props: MacropadViewProps): TemplateResult {
   const hasDevice = Boolean(props.device?.connected);
+  // The reference's `Codex Micro · Connected · 100%`, minus the product name
+  // the page heading already carries.
+  const pill = presentDevicePill(props.device, props.connected);
+  const headerBattery = presentBattery(props.device);
   return html`<div class="macropad">
     ${props.error ? html`<div class="callout danger" role="alert">${props.error}</div>` : nothing}
     <section class="macropad-section">
       <div class="macropad-section__title">
         <span>${t("macropad.device.heading")}</span>
+        <span class="macropad-pill macropad-pill--${pill.tone}">
+          ${headerBattery ? renderBatteryGlyph(headerBattery) : nothing}
+          <span>${pill.text}</span>
+        </span>
         <button
           class="btn btn-ghost btn-sm"
           type="button"
